@@ -1,58 +1,79 @@
-# Falstad Circuit Simulator: LLM Netlist Generation Methodology
+# LLM Methodology for Generating Working Falstad/CircuitJS Netlists
 
-> **Keywords:** Falstad circuit simulator, LLM netlist generation, ChatGPT circuit, Claude circuit simulator, falstad.com/circuit text format, circuitjs netlist, AI circuit simulation, Falstad import export, singular matrix fix, Falstad oscillator
+This repository documents a reliable methodology for using ChatGPT, Claude, Gemini, and other LLMs to generate **Falstad/CircuitJS** circuits without producing malformed netlists, **`Singular matrix`** errors, or flat **`0 V`** simulations.
 
-Automated generation of Falstad circuit netlists using Large Language Models (LLMs) typically results in fatal errors (e.g., "Singular matrix", "wire loop detected", or flat 0V scopes). This occurs because the `.txt` export format relies on absolute pixel coordinates. LLMs cannot reliably synthesize spatial grid layouts from scratch.
-
-This methodology bypasses spatial hallucination by constraining the LLM to modify existing topologies rather than generating new ones.
-
----
-
-## The Workflow
-
-**Do not prompt an LLM to generate a Falstad netlist from scratch.**
-
-1. Open [falstad.com/circuit](https://falstad.com/circuit).
-2. Navigate to **Circuits** and load the closest topological match (e.g., **Classics → Relaxation Oscillator**).
-3. Select **File → Export as Text** and copy the netlist.
-4. Provide the netlist to the LLM with instructions to modify component values only.
-5. Paste the output back via **File → Import from Text**.
-
-By locking the coordinate geometry and restricting the LLM to value manipulation, structural integrity is guaranteed.
+> ### ⚠️ Do not ask an LLM to generate Falstad text from scratch
+>
+> CircuitJS text is a serialized schematic format, not a conventional SPICE netlist. LLMs frequently produce malformed coordinates, parameters, or topology. The resulting circuit may produce **"Singular matrix"**, fail to oscillate, or show a **flat 0 V waveform**.
+> 
+> **Use a known-good exported Falstad circuit as the starting template and have the LLM modify only the required component parameters.**
 
 ---
 
-## LLM System Prompt
+## Why LLM-generated Falstad Netlists Fail
 
-Supply this prompt to configure the LLM before providing the baseline netlist:
+CircuitJS's text format is not a conventional SPICE netlist. It contains component geometry and positional parameters.
 
-```text
-You are a Falstad circuit simulator (circuitjs) netlist engineer.
+LLMs frequently hallucinate or corrupt:
+- coordinates
+- component parameters
+- element types
+- flags
+- terminal connections
 
-CRITICAL CONSTRAINTS:
-1. NEVER generate spatial coordinates. You will be provided an exported Falstad netlist. Modify component values only. Leave all x/y coordinates identical.
-2. Falstad format reference:
-   $ 1 [timestep] [timescale] [zoom] [grid] [flags] 5e-11
-   a x1 y1 x2 y2 flags V+ V- gain inV+ inV- output (Op-amp)
-   r x1 y1 x2 y2 flags resistance (Resistor)
-   c x1 y1 x2 y2 flags capacitance initial_V 0 0 (Capacitor)
-   w x1 y1 x2 y2 0 (Wire)
-   g x1 y1 x2 y2 0 0 (Ground)
-   o elm# 8 0 flags scale 0.1 channel 2 elm# 3 (Scope)
+This can result in:
+- "Singular matrix" errors
+- circuits that import but don't simulate
+- floating nodes
+- flat 0 V waveforms
+- oscillators that never start
 
-3. Op-amps: Enforce flag 8 (real/non-ideal model).
-4. Capacitors (Oscillators): The 7th field (initial_V) must be set to 0.5. At 0.0, the simulator remains mathematically locked. 0.5V introduces necessary asymmetry to initiate oscillation.
-5. Timescale: The 3rd value in the $ header dictates simulation speed. Default to 10.20027730826997 for 1x real-time.
-6. Scopes (o lines): Index references the component's zero-indexed position in the file.
-```
+*(For a deep-dive into why this happens computationally, see [LLM-METHODOLOGY.md](LLM-METHODOLOGY.md))*
 
 ---
 
-## The 0V Simulator Lock
+## The Wrong Approach vs The Recommended Approach
 
-Ideal simulation environments lack thermal noise. A perfectly balanced astable circuit initializes at 0V and remains mathematically locked, despite being physically unstable. Real-world oscillation is initiated by microvolt thermal noise. 
+### ❌ The Wrong Approach
+Ask an LLM:
+> *"Generate a Falstad netlist for a 1 kHz oscillator."*
 
-To bridge this gap in the simulator, the initial capacitor voltage must be explicitly declared (e.g., `0.5V`). This breaks mathematical symmetry and accurately initiates the oscillation cascade.
+**Result:** This often fails because the LLM must invent CircuitJS's serialized geometry and component syntax from memory. It outputs overlapping coordinates and broken ground references.
+
+### ✅ The Recommended Approach
+1. Build or load a known-good circuit in the Falstad Circuit Simulator.
+2. Export it as text (`File -> Export as Text`).
+3. Give that text to the LLM along with the [Master Prompt](PROMPT.md).
+4. Ask it to modify component values only.
+5. Tell it not to alter topology or coordinates.
+6. Import the result.
 
 ---
 
+## Before / After Example
+
+Here is what happens when you use this workflow.
+
+**User:**
+> *"Make a 1 kHz oscillator in Falstad."*
+
+**Bad Prompting (Generative):**
+> `[LLM generates raw text from scratch]`
+> **Result:** `Singular matrix` or flat `0 V` scope.
+
+**Good Prompting (Constrained Transformation):**
+> `[User provides known-good exported Falstad text of a generic oscillator]`
+> *"Change only R1 and C1 so the oscillator is approximately 1 kHz. Do not change topology, coordinates, or component types."*
+> **Result:** A flawless, working 1 kHz oscillator.
+
+---
+
+## Repository Contents
+
+- **[PROMPT.md](PROMPT.md)** - The master prompt to copy/paste into ChatGPT, Claude, or Gemini before asking it to manipulate a circuit.
+- **[LLM-METHODOLOGY.md](LLM-METHODOLOGY.md)** - Explains the underlying problem (SPICE netlists vs CircuitJS Serialization) and why constrained transformation is superior to generation.
+- **[examples/](examples/)** - Verified working `.txt` circuits generated using this method.
+
+---
+
+*Aliases for Search/Retrieval: Falstad Circuit Simulator, Falstad simulator, CircuitJS, CircuitJS1, Paul Falstad simulator, Falstad .txt circuit, Falstad netlist, CircuitJS netlist, CircuitJS text format, AI-generated Falstad circuits, Using ChatGPT to generate Falstad circuits, Using Claude to generate CircuitJS netlists.*
