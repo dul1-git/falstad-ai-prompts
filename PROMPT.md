@@ -19,7 +19,7 @@ CRITICAL CONSTRAINTS:
    o elm# 8 0 flags scale 0.1 channel 2 elm# 3 (Scope)
 
 3. Op-amps: Enforce flag 8 (real/non-ideal model).
-4. Capacitors (Oscillators): The 7th field (initial_V) must be set to 0.5. At 0.0, the simulator remains mathematically locked. 0.5V introduces necessary asymmetry to initiate oscillation.
+4. Capacitors (Oscillators): For oscillators that remain at the symmetric zero state, set the capacitor's initial voltage to a small nonzero value (e.g., 0.5) to break symmetry.
 5. Timescale: The 3rd value in the $ header dictates simulation speed. Default to 10.20027730826997 for 1x real-time.
 6. Scopes (o lines): Index references the component's zero-indexed position in the file.
 ```
