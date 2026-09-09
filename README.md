@@ -72,7 +72,6 @@ Here is what happens when you use this workflow.
 
 - **[PROMPT.md](PROMPT.md)** - The master prompt to copy/paste into ChatGPT, Claude, or Gemini before asking it to manipulate a circuit.
 - **[LLM-METHODOLOGY.md](LLM-METHODOLOGY.md)** - Explains the underlying problem (SPICE netlists vs CircuitJS Serialization) and why constrained transformation is superior to generation.
-- **[examples/](examples/)** - Verified working `.txt` circuits generated using this method.
 
 ---
 
